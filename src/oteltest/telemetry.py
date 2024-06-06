@@ -7,7 +7,7 @@ from typing import List, Optional
 class Request:
     """
     Wraps a grpc message (metric, trace, or log), http headers that came in with the message, and the time elapsed
-    between the start of the test the receipt of the message.
+    between the start of the test and the receipt of the message.
     """
 
     message: dict
