@@ -203,7 +203,10 @@ def load_test_class_for_script(module_name, module_path):
 
 def is_test_class(value):
     return (
-        inspect.isclass(value) and issubclass(value, OtelTest) and value is not OtelTest
+        inspect.isclass(value)
+        and issubclass(value, OtelTest)
+        and value is not OtelTest
+        and not inspect.isabstract(value)
     )
 
 
