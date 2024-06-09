@@ -1,9 +1,12 @@
 import json
+import os
 import pathlib
+from typing import Optional, Sequence, Mapping
 
 import pytest
-from oteltest import telemetry
-from oteltest.private import get_next_json_file, save_telemetry_json
+from oteltest import telemetry, OtelTest, Telemetry
+from oteltest.private import get_next_json_file, save_telemetry_json, is_test_class, setup_script_environment, \
+    load_test_class_for_script
 
 
 @pytest.fixture
@@ -64,6 +67,43 @@ def test_telemetry_trace_operations(trace_telemetry):
     assert telemetry.has_trace_header(tel, header_key, header_val)
     assert {"/"} == telemetry.span_names(tel)
 
+
+def test_is_test_class():
+    class K:
+        pass
+
+    class MyImpl(OtelTest):
+        def environment_variables(self) -> Mapping[str, str]:
+            pass
+
+        def requirements(self) -> Sequence[str]:
+            pass
+
+        def wrapper_command(self) -> str:
+            pass
+
+        def on_start(self) -> Optional[float]:
+            pass
+
+        def on_stop(self, tel: Telemetry, stdout: str, stderr: str, returncode: int) -> None:
+            pass
+
+    class MyOtelTest:
+        pass
+
+    assert not is_test_class(K)
+    assert is_test_class(MyImpl)
+    assert is_test_class(MyOtelTest)
+
+
+def test_load_test_class_for_script():
+    current_dir = os.path.dirname(__file__)
+    path = os.path.join(current_dir, "fixtures", "script.py")
+    klass = load_test_class_for_script("script", path)
+    assert klass is not None
+
+
+################################################################################################
 
 def telemetry_from_json(json_str: str) -> telemetry.Telemetry:
     return telemetry_from_dict(json.loads(json_str))

@@ -27,32 +27,32 @@ from oteltest import OtelTest, Telemetry
 from oteltest.sink import GrpcSink, RequestHandler
 
 
-def run(script_path: str, wheel_file: str, venv_parent_dir: str):
+def run(script_path: str, venv_parent_dir: str):
     temp_dir = venv_parent_dir or tempfile.mkdtemp()
     print(f"- Using temp dir for venvs: {temp_dir}")
 
     if os.path.isdir(script_path):
-        handle_dir(script_path, temp_dir, wheel_file)
+        handle_dir(script_path, temp_dir)
     elif os.path.isfile(script_path):
-        handle_file(script_path, temp_dir, wheel_file)
+        handle_file(script_path, temp_dir)
     else:
         print(f"- {script_path} does not exist")
         return
 
 
-def handle_dir(script_path, temp_dir, wheel_file):
-    sys.path.append(script_path)
-    for script in ls_scripts(script_path):
-        print(f"- Setting up environment for dir {script}")
-        setup_script_environment(temp_dir, script_path, script, wheel_file)
+def handle_dir(dir_path, temp_dir):
+    sys.path.append(dir_path)
+    for script in ls_scripts(dir_path):
+        print(f"- Setting up environment for script {script}")
+        setup_script_environment(temp_dir, dir_path, script)
 
 
-def handle_file(script_path, temp_dir, wheel_file):
-    print(f"- Setting up environment for file {script_path}")
-    script_dir = os.path.dirname(script_path)
+def handle_file(file_path, temp_dir):
+    print(f"- Setting up environment for file {file_path}")
+    script_dir = os.path.dirname(file_path)
     sys.path.append(script_dir)
     setup_script_environment(
-        temp_dir, script_dir, os.path.basename(script_path), wheel_file
+        temp_dir, script_dir, os.path.basename(file_path)
     )
 
 
@@ -64,21 +64,23 @@ def ls_scripts(script_dir):
     return scripts
 
 
-def setup_script_environment(venv_parent, script_dir, script, wheel_file):
+def setup_script_environment(venv_parent: str, script_dir: str, script: str):
     handler = AccumulatingHandler()
     sink = GrpcSink(handler)
     sink.start()
 
     module_name = script[:-3]
     module_path = os.path.join(script_dir, script)
-    oteltest_instance: OtelTest = load_test_class_for_script(module_name, module_path)()
+    oteltest_class = load_test_class_for_script(module_name, module_path)
+    if oteltest_class is None:
+        print(f"Could not find oteltest class for module_name '{module_name}'")
+        return
+    oteltest_instance = oteltest_class()
 
     script_venv = Venv(str(Path(venv_parent) / module_name))
     script_venv.create()
 
     pip_path = script_venv.path_to_executable("pip")
-
-    run_subprocess([pip_path, "install", (wheel_file or "oteltest")])
 
     for req in oteltest_instance.requirements():
         print(f"- Will install requirement: '{req}'")
@@ -116,7 +118,7 @@ def save_telemetry_json(script_dir: str, file_name: str, json_str: str):
 
 
 def run_python_script(
-    script_dir: str, script: str, oteltest_instance: OtelTest, v
+  script_dir: str, script: str, oteltest_instance: OtelTest, v
 ) -> typing.Tuple[str, str, int]:
     print(f"- Running python script: {script}")
     python_script_cmd = [
@@ -189,9 +191,7 @@ def print_subprocess_result(stdout: str, stderr: str, returncode: int):
 
 
 def load_test_class_for_script(module_name, module_path):
-    spec = importlib.util.spec_from_file_location(
-        module_name, os.path.abspath(module_path)
-    )
+    spec = importlib.util.spec_from_file_location(module_name, module_path)
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     for attr_name in dir(module):
@@ -203,11 +203,13 @@ def load_test_class_for_script(module_name, module_path):
 
 def is_test_class(value):
     return (
-        inspect.isclass(value)
-        and issubclass(value, OtelTest)
-        and value is not OtelTest
-        and not inspect.isabstract(value)
+      inspect.isclass(value)
+      and (is_strict_subclass(value) or "OtelTest" in value.__name__)
     )
+
+
+def is_strict_subclass(value):
+    return issubclass(value, OtelTest) and value is not OtelTest and not inspect.isabstract(value)
 
 
 class Venv:
@@ -237,7 +239,7 @@ class AccumulatingHandler(RequestHandler):
         )
 
     def handle_metrics(
-        self, request: ExportMetricsServiceRequest, context
+      self, request: ExportMetricsServiceRequest, context
     ):  # noqa: ARG002
         self.telemetry.add_metric(
             MessageToDict(request),

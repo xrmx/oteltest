@@ -1,8 +1,6 @@
 import time
 from typing import Mapping, Optional, Sequence
 
-from oteltest import OtelTest, Telemetry
-
 PORT = 8909
 HOST = "127.0.0.1"
 
@@ -18,7 +16,9 @@ if __name__ == "__main__":
     app.run(port=PORT, host=HOST)
 
 
-class FlaskTest(OtelTest):
+# We have the option to not inherit from the OtelTest base class, in which case we name our class so it contains
+# "OtelTest". This has the benefit of not requiring a dependency on oteltest in the script's environment.
+class FlaskOtelTest:
     def environment_variables(self) -> Mapping[str, str]:
         return {}
 
@@ -51,6 +51,6 @@ class FlaskTest(OtelTest):
         return 30
 
     def on_stop(
-        self, telemetry: Telemetry, stdout: str, stderr: str, returncode: int
+        self, telemetry, stdout: str, stderr: str, returncode: int
     ) -> None:
         print(f"on_stop: telemetry: {telemetry}")

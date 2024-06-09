@@ -42,7 +42,7 @@ Running `oteltest` against a directory containing only `my_script.py`
 1) Starts an OTLP listener ([otelsink](#otelsink))
 2) Creates a new Python virtual environment with `requirements()`
 3) In that environment, starts running `my_script.py` in a subprocess
-4) Calls `OtelTest#on_start()`
+4) Calls `on_start()`
 5) Depending on the return value from `on_start()`, waits for `my_script.py` to complete
 6) Stops otelsink
 7) Calls `on_stop()` with otelsink's received telemetry and script output
@@ -50,14 +50,14 @@ Running `oteltest` against a directory containing only `my_script.py`
 
 #### Script Eligibility
 
-For a Python script to be runnable by `oteltest`, it must both be executable and define an implementation of the
-[OtelTest](src/oteltest/__init__.py) abstract base class. The script below has an implementation called `MyOtelTest`:
+For a Python script to be runnable by `oteltest`, it must both be executable and implement the [OtelTest](src/oteltest/__init__.py)
+abstract base class. The implementation should either inherit from `OtelTest` or contain the name "OtelTest". The script
+below has an implementation called `MyOtelTest`:
 
 ```python
 import time
 
 from opentelemetry import trace
-from oteltest import OtelTest, Telemetry
 
 SERVICE_NAME = "my-otel-test"
 NUM_ADDS = 12
@@ -70,7 +70,7 @@ if __name__ == "__main__":
             time.sleep(0.5)
 
 
-class MyOtelTest(OtelTest):
+class MyOtelTest:
     def requirements(self):
         return "opentelemetry-distro", "opentelemetry-exporter-otlp-proto-grpc"
 
@@ -83,8 +83,8 @@ class MyOtelTest(OtelTest):
     def on_start(self):
         return None
 
-    def on_stop(self, telemetry: Telemetry, stdout: str, stderr: str, returncode: int) -> None:
-        assert telemetry.num_spans() == NUM_ADDS
+    def on_stop(self, telemetry, stdout: str, stderr: str, returncode: int) -> None:
+        print(f"script completed with return code {returncode}")
 ```
 
 Here's a client-server example:
@@ -94,8 +94,6 @@ import time
 from typing import Mapping, Optional, Sequence
 
 from flask import Flask, jsonify
-
-from oteltest import OtelTest, Telemetry
 
 PORT = 8002
 HOST = "127.0.0.1"
@@ -113,7 +111,7 @@ if __name__ == "__main__":
     app.run(port=PORT, host=HOST)
 
 
-class FlaskTest(OtelTest):
+class FlaskTest:
     def environment_variables(self) -> Mapping[str, str]:
         return {}
 
@@ -145,8 +143,8 @@ class FlaskTest(OtelTest):
         # still running. If we return `None` then the script will run indefinitely.
         return 30
 
-    def on_stop(self, telemetry: Telemetry, stdout: str, stderr: str, returncode: int) -> None:
-        print(f"on_stop: telemetry: {telemetry}")
+    def on_stop(self, telemetry, stdout: str, stderr: str, returncode: int) -> None:
+        print("done")
 
 ```
 

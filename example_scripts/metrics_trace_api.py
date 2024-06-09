@@ -1,7 +1,5 @@
 from typing import Mapping, Optional, Sequence
 
-from oteltest import OtelTest, Telemetry
-
 
 def print_time(iterations):
     import time
@@ -17,7 +15,9 @@ def print_time(iterations):
             print(f"{i + 1}/{iterations} current time: {round(time.time())}")
 
 
-class MyTest(OtelTest):
+# We have the option to not inherit from the OtelTest base class, in which case we name our class so it contains
+# "OtelTest". This has the benefit of not requiring a dependency on oteltest in the script's environment.
+class MyOtelTest:
 
     def environment_variables(self) -> Mapping[str, str]:
         return {}
@@ -26,15 +26,14 @@ class MyTest(OtelTest):
         return ("splunk-opentelemetry[all]",)
 
     def wrapper_command(self) -> str:
-        return "opentelemetry-instrument"
+        # return "opentelemetry-instrument"
+        return "splunk-py-trace"
 
     def on_start(self) -> Optional[float]:
         print("started")
         return None
 
-    def on_stop(
-        self, tel: Telemetry, stdout: str, stderr: str, returncode: int
-    ) -> None:
+    def on_stop(self, tel, stdout: str, stderr: str, returncode: int) -> None:
         print(f"stopped: {stdout}")
         print(f"telemetry: {tel}")
 
