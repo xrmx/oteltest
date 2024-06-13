@@ -233,7 +233,7 @@ class AccumulatingHandler(RequestHandler):
 
     def handle_logs(self, request: ExportLogsServiceRequest, context):  # noqa: ARG002
         self.telemetry.add_log(
-            MessageToDict(request),
+            request,
             get_context_headers(context),
             self.get_test_elapsed_ms(),
         )
@@ -242,14 +242,14 @@ class AccumulatingHandler(RequestHandler):
       self, request: ExportMetricsServiceRequest, context
     ):  # noqa: ARG002
         self.telemetry.add_metric(
-            MessageToDict(request),
+            request,
             get_context_headers(context),
             self.get_test_elapsed_ms(),
         )
 
     def handle_trace(self, request: ExportTraceServiceRequest, context):  # noqa: ARG002
         self.telemetry.add_trace(
-            MessageToDict(request),
+            request,
             get_context_headers(context),
             self.get_test_elapsed_ms(),
         )

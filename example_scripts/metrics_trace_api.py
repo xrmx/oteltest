@@ -1,3 +1,4 @@
+import pickle
 from typing import Mapping, Optional, Sequence
 
 
@@ -34,8 +35,7 @@ class MyOtelTest:
         return None
 
     def on_stop(self, tel, stdout: str, stderr: str, returncode: int) -> None:
-        print(f"stopped: {stdout}")
-        print(f"telemetry: {tel}")
+        print(f"stopped")
 
 
 if __name__ == "__main__":
