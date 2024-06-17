@@ -146,7 +146,15 @@ def first_span(tel: Telemetry):
 
 
 def span_at_index(tel: Telemetry, a: int, b: int, c: int, d: int):
-    return tel.trace_requests[a].pbreq.resource_spans[b].scope_spans[c].spans[d]
+    if len(tel.trace_requests):
+        req = tel.trace_requests[a]
+        if len(req.pbreq.resource_spans):
+            rs = req.pbreq.resource_spans[b]
+            if len(rs.scope_spans):
+                ss = rs.scope_spans[c]
+                if len(ss.spans):
+                    return ss.spans[d]
+    return None
 
 
 def span_attribute_by_name(span, attr_name) -> Optional[str]:
