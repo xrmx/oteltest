@@ -32,12 +32,6 @@ def test_get_next_json_file(tmp_path):
     assert "my_module_name.2.json" == next_file
 
 
-@pytest.fixture
-def telemetry_fixture():
-    with open(get_path_to_fixture("telemetry.pkl"), "rb") as file:
-        return pickle.load(file)
-
-
 def test_is_test_class():
     class K:
         pass
@@ -74,46 +68,57 @@ def test_load_test_class_for_script():
     assert klass is not None
 
 
-def test_telemetry_functions(telemetry_fixture: Telemetry):
-    assert len(telemetry_fixture.trace_requests)
-    assert len(telemetry_fixture.trace_requests)
-    assert telemetry.num_spans(telemetry_fixture) == 10
-    assert telemetry.num_metrics(telemetry_fixture) == 21
-    assert telemetry.metric_names(telemetry_fixture) == {
-        "system.thread_count",
-        "process.runtime.cpython.gc_count",
-        "system.disk.io",
-        "system.network.errors",
-        "system.network.dropped_packets",
-        "system.disk.operations",
-        "system.network.packets",
-        "system.cpu.utilization",
-        "system.swap.utilization",
-        "system.memory.usage",
-        "process.runtime.cpython.context_switches",
-        "process.runtime.cpython.cpu_time",
-        "process.runtime.cpython.cpu.utilization",
-        "system.network.io",
-        "system.memory.utilization",
+def test_telemetry_functions(metrics_trace_fixture: Telemetry):
+    assert len(metrics_trace_fixture.trace_requests)
+    assert len(metrics_trace_fixture.trace_requests)
+    assert telemetry.num_spans(metrics_trace_fixture) == 10
+    assert telemetry.num_metrics(metrics_trace_fixture) == 21
+    assert telemetry.metric_names(metrics_trace_fixture) == {
         "loop-counter",
-        "process.runtime.cpython.thread_count",
-        "system.swap.usage",
-        "system.disk.time",
-        "system.cpu.time",
+        "process.runtime.cpython.context_switches",
+        "process.runtime.cpython.cpu.utilization",
+        "process.runtime.cpython.cpu_time",
+        "process.runtime.cpython.gc_count",
         "process.runtime.cpython.memory",
+        "process.runtime.cpython.thread_count",
+        "system.cpu.time",
+        "system.cpu.utilization",
+        "system.disk.io",
+        "system.disk.operations",
+        "system.disk.time",
+        "system.memory.usage",
+        "system.memory.utilization",
+        "system.network.dropped_packets",
+        "system.network.errors",
+        "system.network.io",
+        "system.network.packets",
+        "system.swap.usage",
+        "system.swap.utilization",
+        "system.thread_count",
     }
-    request = telemetry_fixture.trace_requests[0]
-    span = request.pbreq.resource_spans[0].scope_spans[0].spans[0]
+    span = telemetry.first_span(metrics_trace_fixture)
     assert span.trace_id.hex() == "0adffbc2cb9f3cdb09f6801a788da973"
 
 
+def test_span_attribute_by_name(client_server_fixture: Telemetry):
+    span = telemetry.first_span(client_server_fixture)
+    assert telemetry.span_attribute_by_name(span, "http.method") == "GET"
+
+
+# fixtures
+
+
+@pytest.fixture
+def metrics_trace_fixture() -> Telemetry:
+    return load_fixture("metrics_trace.pkl")
+
+
+@pytest.fixture
+def client_server_fixture() -> Telemetry:
+    return load_fixture("client_server.pkl")
+
+
 # utils
-
-fixtures_dir = os.path.join(os.path.dirname(__file__), "fixtures")
-
-
-def get_path_to_fixture(fname):
-    return os.path.join(fixtures_dir, fname)
 
 
 def telemetry_from_json(json_str: str) -> telemetry.Telemetry:
@@ -126,3 +131,15 @@ def telemetry_from_dict(d) -> telemetry.Telemetry:
         metric_requests=d["metric_requests"],
         trace_requests=d["trace_requests"],
     )
+
+
+fixtures_dir = os.path.join(os.path.dirname(__file__), "fixtures")
+
+
+def load_fixture(fname):
+    with open(get_path_to_fixture(fname), "rb") as file:
+        return pickle.load(file)
+
+
+def get_path_to_fixture(fname):
+    return os.path.join(fixtures_dir, fname)

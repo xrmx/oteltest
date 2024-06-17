@@ -3,9 +3,15 @@ import json
 from typing import List, Optional, Union
 
 from google.protobuf.json_format import MessageToDict
-from opentelemetry.proto.collector.logs.v1.logs_service_pb2 import ExportLogsServiceRequest
-from opentelemetry.proto.collector.metrics.v1.metrics_service_pb2 import ExportMetricsServiceRequest
-from opentelemetry.proto.collector.trace.v1.trace_service_pb2 import ExportTraceServiceRequest
+from opentelemetry.proto.collector.logs.v1.logs_service_pb2 import (
+    ExportLogsServiceRequest,
+)
+from opentelemetry.proto.collector.metrics.v1.metrics_service_pb2 import (
+    ExportMetricsServiceRequest,
+)
+from opentelemetry.proto.collector.trace.v1.trace_service_pb2 import (
+    ExportTraceServiceRequest,
+)
 
 
 @dataclasses.dataclass
@@ -14,7 +20,10 @@ class Request:
     Wraps a grpc message (metric, trace, or log), http headers that came in with the message, and the time elapsed
     between the start of the test and the receipt of the message.
     """
-    pbreq: Union[ExportTraceServiceRequest, ExportMetricsServiceRequest, ExportLogsServiceRequest]
+
+    pbreq: Union[
+        ExportTraceServiceRequest, ExportMetricsServiceRequest, ExportLogsServiceRequest
+    ]
     headers: dict
     test_elapsed_ms: int
 
@@ -48,13 +57,19 @@ class Telemetry:
         self.trace_requests: List[Request] = trace_requests or []
         self.log_requests: List[Request] = log_requests or []
 
-    def add_metric(self, pbreq: ExportMetricsServiceRequest, headers: dict, test_elapsed_ms: int):
+    def add_metric(
+        self, pbreq: ExportMetricsServiceRequest, headers: dict, test_elapsed_ms: int
+    ):
         self.metric_requests.append(Request(pbreq, headers, test_elapsed_ms))
 
-    def add_trace(self, pbreq: ExportTraceServiceRequest, headers: dict, test_elapsed_ms: int):
+    def add_trace(
+        self, pbreq: ExportTraceServiceRequest, headers: dict, test_elapsed_ms: int
+    ):
         self.trace_requests.append(Request(pbreq, headers, test_elapsed_ms))
 
-    def add_log(self, pbreq: ExportLogsServiceRequest, headers: dict, test_elapsed_ms: int):
+    def add_log(
+        self, pbreq: ExportLogsServiceRequest, headers: dict, test_elapsed_ms: int
+    ):
         self.log_requests.append(Request(pbreq, headers, test_elapsed_ms))
 
     def get_metric_requests(self) -> List[Request]:
@@ -124,3 +139,19 @@ def has_trace_header(telemetry, key, expected) -> bool:
         if expected == actual:
             return True
     return False
+
+
+def first_span(tel: Telemetry):
+    return span_at_index(tel, 0, 0, 0, 0)
+
+
+def span_at_index(tel: Telemetry, a: int, b: int, c: int, d: int):
+    return tel.trace_requests[a].pbreq.resource_spans[b].scope_spans[c].spans[d]
+
+
+def span_attribute_by_name(span, attr_name) -> Optional[str]:
+    for attr in span.attributes:
+        if attr.key == attr_name:
+            if attr.value.HasField("string_value"):
+                return attr.value.string_value
+    return None
