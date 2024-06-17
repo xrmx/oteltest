@@ -56,7 +56,12 @@ class GrpcSink:
     logs. It requires a RequestHandler implementation passed in.
     """
 
-    def __init__(self, request_handler: RequestHandler, max_workers: int = 10, address: str = "0.0.0.0:4317"):
+    def __init__(
+        self,
+        request_handler: RequestHandler,
+        max_workers: int = 10,
+        address: str = "0.0.0.0:4317",
+    ):
         self.svr = grpc.server(futures.ThreadPoolExecutor(max_workers=max_workers))
         trace_service_pb2_grpc.add_TraceServiceServicer_to_server(
             _TraceServiceServicer(request_handler.handle_trace), self.svr

@@ -51,9 +51,7 @@ def handle_file(file_path, temp_dir):
     print(f"- Setting up environment for file {file_path}")
     script_dir = os.path.dirname(file_path)
     sys.path.append(script_dir)
-    setup_script_environment(
-        temp_dir, script_dir, os.path.basename(file_path)
-    )
+    setup_script_environment(temp_dir, script_dir, os.path.basename(file_path))
 
 
 def ls_scripts(script_dir):
@@ -118,7 +116,7 @@ def save_telemetry_json(script_dir: str, file_name: str, json_str: str):
 
 
 def run_python_script(
-  script_dir: str, script: str, oteltest_instance: OtelTest, v
+    script_dir: str, script: str, oteltest_instance: OtelTest, v
 ) -> typing.Tuple[str, str, int]:
     print(f"- Running python script: {script}")
     python_script_cmd = [
@@ -202,14 +200,17 @@ def load_test_class_for_script(module_name, module_path):
 
 
 def is_test_class(value):
-    return (
-      inspect.isclass(value)
-      and (is_strict_subclass(value) or "OtelTest" in value.__name__)
+    return inspect.isclass(value) and (
+        is_strict_subclass(value) or "OtelTest" in value.__name__
     )
 
 
 def is_strict_subclass(value):
-    return issubclass(value, OtelTest) and value is not OtelTest and not inspect.isabstract(value)
+    return (
+        issubclass(value, OtelTest)
+        and value is not OtelTest
+        and not inspect.isabstract(value)
+    )
 
 
 class Venv:
@@ -233,23 +234,23 @@ class AccumulatingHandler(RequestHandler):
 
     def handle_logs(self, request: ExportLogsServiceRequest, context):  # noqa: ARG002
         self.telemetry.add_log(
-            MessageToDict(request),
+            request,
             get_context_headers(context),
             self.get_test_elapsed_ms(),
         )
 
     def handle_metrics(
-      self, request: ExportMetricsServiceRequest, context
+        self, request: ExportMetricsServiceRequest, context
     ):  # noqa: ARG002
         self.telemetry.add_metric(
-            MessageToDict(request),
+            request,
             get_context_headers(context),
             self.get_test_elapsed_ms(),
         )
 
     def handle_trace(self, request: ExportTraceServiceRequest, context):  # noqa: ARG002
         self.telemetry.add_trace(
-            MessageToDict(request),
+            request,
             get_context_headers(context),
             self.get_test_elapsed_ms(),
         )

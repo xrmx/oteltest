@@ -50,7 +50,9 @@ class FlaskOtelTest:
         # if it's still running. If we return `None` then the script will run indefinitely.
         return 30
 
-    def on_stop(
-        self, telemetry, stdout: str, stderr: str, returncode: int
-    ) -> None:
-        print(f"on_stop: telemetry: {telemetry}")
+    def on_stop(self, tel, stdout: str, stderr: str, returncode: int) -> None:
+        # local import so oteltest is not needed for parsing this script
+        from oteltest import telemetry
+
+        span = telemetry.first_span(tel)
+        assert telemetry.span_attribute_by_name(span, "http.method") == "GET"
